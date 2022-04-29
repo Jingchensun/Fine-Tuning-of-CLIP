@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+import clip
 
 
 class Bottleneck(nn.Module):
@@ -366,6 +367,47 @@ class CLIP(nn.Module):
 
         # shape = [global_batch_size, global_batch_size]
         return logits_per_image, logits_per_text
+
+
+class Gauss_model(nn.Module):
+    def __init__(self):
+        super(Gauss_model, self).__init__()
+        self.clip_model, _ = clip.load('ViT-B/32', 'cuda:3')
+        self.image_u = nn.Linear(512, 512)
+        self.image_std = nn.Linear(512, 512)
+        self.text_u = nn.Linear(512, 512)
+        self.text_std = nn.Linear(512, 512)
+        self.initialize_parameters()
+
+    def initialize_parameters(m: nn.Module):
+        if isinstance(m, nn.Linear):
+            nn.init.normal_(m.weight, std=.02)
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+                # nn.init.normal_(m.weight, mean=0, std=0.01)
+        # nn.init.constant_(m.bias, 0)
+
+    def reparameterise(self, mu, std):
+        epsilon = torch.randn_like(mu)
+        return mu + epsilon * torch.exp(std / 2)
+
+    def forward(self, image, text):
+        # self.clip = model
+        # print(self.clip_model.encode_image(image).size()) #torch.Size([1, 512])
+        image_u = self.image_u(self.clip_model.encode_image(image).float())
+        # print(image_u.size())#torch.Size([1, 512])
+        image_std = self.image_std(self.clip_model.encode_image(image).float())
+        text_u = self.text_u(self.clip_model.encode_text(text).float())
+        text_std = self.text_std(self.clip_model.encode_text(text).float())
+        # print(image_u.size(),image_std.size()) #torch.Size([1, 512]), torch.Size([1, 512])
+        image_feat = self.reparameterise(image_u, image_std)
+        # print(image_feat.size())
+        text_feat = self.reparameterise(text_u, text_std)
+        # print(text_feat.size()) #torch.Size([100, 512])
+
+        return image_feat, text_feat
+
+    
 
 
 def convert_weights(model: nn.Module):
