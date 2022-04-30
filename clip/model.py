@@ -373,6 +373,8 @@ class Gauss_model(nn.Module):
     def __init__(self):
         super(Gauss_model, self).__init__()
         self.clip_model, _ = clip.load('ViT-B/32', 'cuda:3')
+        for p in self.clip_model.parameters():
+            p.requires_grad = False
         self.image_u = nn.Linear(512, 512)
         self.image_std = nn.Linear(512, 512)
         self.text_u = nn.Linear(512, 512)
@@ -384,15 +386,12 @@ class Gauss_model(nn.Module):
             nn.init.normal_(m.weight, std=.02)
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
-                # nn.init.normal_(m.weight, mean=0, std=0.01)
-        # nn.init.constant_(m.bias, 0)
 
     def reparameterise(self, mu, std):
         epsilon = torch.randn_like(mu)
         return mu + epsilon * torch.exp(std / 2)
 
     def forward(self, image, text):
-        # self.clip = model
         # print(self.clip_model.encode_image(image).size()) #torch.Size([1, 512])
         image_u = self.image_u(self.clip_model.encode_image(image).float())
         # print(image_u.size())#torch.Size([1, 512])

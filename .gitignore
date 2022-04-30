@@ -10,3 +10,5 @@ thumbs.db
 .idea
 ImageNetV2-matched-frequency
 ImageNetV2-matched-frequency.tar.gz
+.github/workflows
+model_checkpoint/
