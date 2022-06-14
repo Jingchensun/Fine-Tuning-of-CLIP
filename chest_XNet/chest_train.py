@@ -96,8 +96,7 @@ def train(model, trainloader, testloader, zeroshot_weights, learning_rate):
             if AUROC_avg > max_AUROC_avg:
                 max_AUROC_avg = AUROC_avg
                 torch.save(model.state_dict(),
-                           os.path.join(save_model_path, 'best{}_epoch{}.pth'.format(max_AUROC_avg,epoch)))
-
+                           os.path.join(save_model_path, 'best_{}_epoch{}.pth'.format(max_AUROC_avg,epoch)))
 def val(model, testloader, zeroshot_weights):
     print('start val!')
     gt = torch.FloatTensor()
@@ -145,8 +144,8 @@ def compute_AUCs(gt, pred):
 device = "cuda" if torch.cuda.is_available() else "cpu" # If using GPU then use mixed precision training.
 model, preprocess = clip.load("ViT-B/32",device=device,jit=False) #Must set jit=False for training
 
-EPOCH =10
-BATCH_SIZE =32
+EPOCH =100
+BATCH_SIZE =128
 learning_rate = 5e-5
 
 save_model_path='clip_chest/'
