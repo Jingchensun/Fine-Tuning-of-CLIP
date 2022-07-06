@@ -354,15 +354,20 @@ class CLIP(nn.Module):
 
     def forward(self, image, text):
         image_features = self.encode_image(image)
+        # print('image_features',image_features.size())#torch.Size([32, 512])
         text_features = self.encode_text(text)
+        # print('image_features',image_features.size())#torch.Size([32, 512])
 
         # normalized features
         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        print('image_features_norm',image_features.size())#torch.Size([32, 512])
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         # cosine similarity as logits
         logit_scale = self.logit_scale.exp()
+        print('logit_scale',logit_scale.size())#torch.Size([])
         logits_per_image = logit_scale * image_features @ text_features.t()
+        print('logits_per_image',logits_per_image.size())#torch.Size([32, 32])
         logits_per_text = logits_per_image.t()
 
         # shape = [global_batch_size, global_batch_size]
@@ -379,6 +384,7 @@ class Gauss_model(nn.Module):
         self.image_std = nn.Linear(512, 512)
         self.text_u = nn.Linear(512, 512)
         self.text_std = nn.Linear(512, 512)
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         self.initialize_parameters()
 
     def initialize_parameters(m: nn.Module):
@@ -387,9 +393,13 @@ class Gauss_model(nn.Module):
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
 
-    def reparameterise(self, mu, std):
-        epsilon = torch.randn_like(mu)
-        return mu + epsilon * torch.exp(std / 2)
+    # def reparameterise(self, mu, std):
+    #     #torch.Size([1, 1, 512])
+    #     mu = mu.repeat(1,32,1)
+    #     std = std.repeat(1,32,1)
+    #     #torch.Size([1, 32, 512])
+    #     epsilon = torch.randn_like(mu)
+    #     return mu + epsilon * torch.exp(std / 2)
 
     def forward(self, image, text):
         # print(self.clip_model.encode_image(image).size()) #torch.Size([1, 512])
@@ -398,13 +408,30 @@ class Gauss_model(nn.Module):
         image_std = self.image_std(self.clip_model.encode_image(image).float())
         text_u = self.text_u(self.clip_model.encode_text(text).float())
         text_std = self.text_std(self.clip_model.encode_text(text).float())
-        # print(image_u.size(),image_std.size()) #torch.Size([1, 512]), torch.Size([1, 512])
-        image_feat = self.reparameterise(image_u, image_std)
-        # print(image_feat.size())
-        text_feat = self.reparameterise(text_u, text_std)
-        # print(text_feat.size()) #torch.Size([100, 512])
+        # # print(image_u.size(),image_std.size()) #torch.Size([1, 512]), torch.Size([1, 512])
+        # image_features = self.reparameterise(image_u, image_std)
+        # #print(image_features.size()) #torch.Size([32, 512])
+        # text_features = self.reparameterise(text_u, text_std)
+        # #print(text_features.size()) #torch.Size([32, 512])
 
-        return image_feat, text_feat
+        # logvar = image_features
+        # mu = text_features
+        # # # normalized features
+        # # image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        # # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+
+        # # # cosine similarity as logits
+        # # logit_scale = self.logit_scale.exp()
+        # # logits_per_image = logit_scale * image_features @ text_features.t()
+        # # logits_per_text = logits_per_image.t()
+
+        # image_kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        # #print(logits_per_image.size())
+        # text_kl = image_kl.t()
+        # #print(logits_per_text.size())
+
+        # #return logits_per_image, logits_per_text
+        return image_u,image_std,text_u,text_std
 
     
 
