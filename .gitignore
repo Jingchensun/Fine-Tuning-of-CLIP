@@ -15,3 +15,8 @@ model_checkpoint/
 ImageNetV2-matched-frequency
 ImageNetV2-matched-frequency.tar.gz
 clip_chest/
+logs/
+logs2/
+model_checkpoint0/
+model_checkpoint
+nohup.out
